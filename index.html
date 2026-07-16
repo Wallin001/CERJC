@@ -1,0 +1,596 @@
+<title>RJC Fleet Availability — KLM Cityhopper E175/E190</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --success-text:   #006300;
+    --series-1:       #2a78d6; /* blue   — PH-EXE */
+    --series-2:       #008300; /* green  — PH-EXY */
+    --series-3:       #e87ba4; /* magenta — PH-EXK */
+    --status-good:    #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical:#d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --success-text:   #0ca30c;
+      --series-1:       #3987e5;
+      --series-2:       #008300;
+      --series-3:       #d55181;
+      --status-good:    #0ca30c;
+      --status-warning: #fab219;
+      --status-serious: #ec835a;
+      --status-critical:#e66767;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --success-text:   #0ca30c;
+    --series-1:       #3987e5;
+    --series-2:       #008300;
+    --series-3:       #d55181;
+    --status-good:    #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical:#e66767;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page-plane);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 32px 20px 64px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  header.page-head { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--series-1); margin: 0 0 8px;
+  }
+  h1 { font-size: 28px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .lede { font-size: 15px; line-height: 1.6; color: var(--text-secondary); max-width: 760px; margin: 0 0 4px; }
+
+  .context-card {
+    margin-top: 28px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    padding: 20px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+  .context-card b { color: var(--text-secondary); }
+  .context-card .src {
+    display: block; margin-top: 10px; font-size: 11px; color: var(--text-muted);
+  }
+
+  .foot-heading {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 8px;
+  }
+  .source-list { list-style: none; margin: 0 0 16px; padding: 0; }
+  .source-list li { margin: 3px 0; }
+
+  /* stat tiles */
+  .tiles {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+    margin: 40px 0;
+  }
+  @media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 22px;
+  }
+  .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+  .tile .value { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .tile .value small { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+  .tile .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
+  .tile .flag { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; margin-top:6px; }
+  .tile .flag.warn { color: var(--status-serious); }
+  .tile .flag svg { width: 12px; height: 12px; }
+
+  /* charts grid */
+  .charts-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    margin-bottom: 20px; align-items: start;
+  }
+  @media (max-width: 860px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  /* card */
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 22px 12px; margin-bottom: 20px; min-width: 0;
+  }
+  .charts-grid .card { margin-bottom: 0; }
+
+  .table-wrap {
+    max-height: 360px; overflow-y: auto; overflow-x: auto;
+    border: 1px solid var(--gridline); border-radius: 8px; margin-top: 6px;
+  }
+  .table-wrap table.data-table { margin-top: 0; min-width: 420px; }
+  .table-wrap thead th { position: sticky; top: 0; background: var(--surface-1); }
+  .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+  .card-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .card-desc { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; max-width: 640px; line-height: 1.5; }
+  .table-toggle {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    background: transparent; border: 1px solid var(--border); border-radius: 7px;
+    padding: 5px 10px; cursor: pointer; white-space: nowrap;
+  }
+  .table-toggle:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+  /* legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 4px 0 18px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-secondary); cursor: pointer; user-select: none; }
+  .legend-item .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  .legend-item.off { opacity: 0.35; }
+
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .axis-label { fill: var(--text-muted); font-size: 11px; }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .baseline { stroke: var(--baseline); stroke-width: 1; }
+
+  .bar { transition: opacity .15s; cursor: pointer; }
+  .bar:hover, .bar.hovered { filter: brightness(1.08); }
+  .lineseries { fill: none; stroke-width: 2; }
+  .linedot { stroke-width: 2; stroke: var(--surface-1); cursor: pointer; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 2147483647;
+    background: rgba(20,20,20,0.96); background-color: #141414;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    padding: 10px 12px; font-size: 12.5px; color: #e6e6e6;
+    min-width: 190px; max-width: min(280px, calc(100vw - 24px));
+    opacity: 0; transform: translateY(4px);
+    transition: opacity .1s, transform .1s;
+  }
+  .tooltip.show { opacity: 1; transform: translateY(0); }
+  .tooltip .tt-title { font-weight: 700; color: #ffffff; margin-bottom: 6px; font-size: 12.5px; }
+  .tooltip .tt-row { display: flex; align-items: baseline; gap: 6px; margin: 3px 0; }
+  .tooltip .tt-key { width: 12px; height: 2px; flex: none; border-radius: 1px; margin-bottom: 2px; }
+  .tooltip .tt-val { font-weight: 700; color: #ffffff; }
+  .tooltip .tt-note { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.14); font-size: 11.5px; line-height: 1.5; color: #b8b8b8; }
+
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+  table.data-table th { text-align: right; font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  table.data-table th:first-child, table.data-table td:first-child { text-align: left; }
+  table.data-table td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--gridline); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  table.data-table td:first-child { color: var(--text-primary); font-weight: 500; }
+  table.data-table tr:last-child td { border-bottom: none; }
+  .hidden { display: none !important; }
+
+  footer.page-foot { margin-top: 20px; font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+  footer.page-foot a { color: var(--text-muted); }
+</style>
+
+<div class="viz-root">
+<div class="wrap">
+
+  <header class="page-head">
+    <p class="eyebrow">Regional Jet Center · Schiphol</p>
+    <h1>Fleet availability — KLM Cityhopper E175/E190</h1>
+    <p class="lede">Vliegtijd, grondtijd en utilisatie van drie Embraer-toestellen die onderhoud krijgen bij Regional Jet Center (RJC), afgelopen 7 dagen.</p>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="charts-grid">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-title">Vliegtijd per toestel per dag</p>
+          <p class="card-desc">Aantal uren dat elk toestel in de lucht was. De resterende uren tot 24 zijn grondtijd — beschikbaar voor RJC-onderhoud.</p>
+        </div>
+        <button class="table-toggle" data-toggle="table-bar">Toon als tabel</button>
+      </div>
+      <div class="legend" id="legend-bar"></div>
+      <div id="chart-bar"></div>
+      <div id="table-bar" class="hidden table-wrap"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-title">Utilisatie % — trend over de week</p>
+          <p class="card-desc">Percentage van elke dag dat het toestel vloog. Hoe hoger de lijn, hoe intensiever het toestel is ingezet en hoe minder ruimte er die dag was voor onderhoud bij RJC.</p>
+        </div>
+        <button class="table-toggle" data-toggle="table-line">Toon als tabel</button>
+      </div>
+      <div class="legend" id="legend-line"></div>
+      <div id="chart-line"></div>
+      <div id="table-line" class="hidden table-wrap"></div>
+    </section>
+  </div>
+
+  <div class="context-card">
+    Dit dashboard volgt drie Embraer E175/E190-toestellen van <b>KLM Cityhopper</b>
+    die line- en hangaaronderhoud krijgen bij <b>Regional Jet Center (RJC)</b> op
+    Schiphol. Door hun vluchtgeschiedenis te volgen, analyseren we vliegtuigen die
+    letterlijk bij RJC langskomen voor onderhoud. Fleet availability — grondtijd
+    versus vliegtijd — hangt direct samen met RJC's onderhoudsplanning: hoe meer
+    een toestel vliegt, hoe minder tijd er overblijft voor gepland onderhoud, en
+    hoe krapper RJC de hangaarcapaciteit moet inplannen rond de operationele vloot.
+    <span class="src" id="src-claim">Databron: OpenSky Network REST API (opensky-network.org/apidoc).</span>
+  </div>
+
+  <footer class="page-foot">
+    <p class="foot-heading">Bronnen</p>
+    <ul class="source-list">
+      <li>OpenSky Network REST API — <a href="https://opensky-network.org/apidoc/" target="_blank" rel="noopener">opensky-network.org/apidoc</a></li>
+      <li>Regional Jet Center — <a href="https://www.rjc.nl" target="_blank" rel="noopener">rjc.nl</a></li>
+      <li>Vliegtuigregisterdatabase (ICAO24-hexcodes) — <a href="https://hexdb.io" target="_blank" rel="noopener">hexdb.io</a></li>
+    </ul>
+    <p>
+      Toestellen: PH-EXE (Embraer E190, ICAO24 485206) · PH-EXY (Embraer E190, ICAO24 485875) ·
+      PH-EXK (Embraer E175, ICAO24 48548c) — hex-codes geverifieerd via de OpenSky/hexdb.io vliegtuigregisterdatabase.
+      Data gegenereerd: <span id="gen-time"></span> (UTC) · bron: <span id="src-mode"></span>.
+    </p>
+  </footer>
+
+</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const DATA = {"days": ["2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15"], "aircraft": {"485206": "PH-EXE (E190)", "485875": "PH-EXY (E190)", "48548c": "PH-EXK (E175)"}, "flight_hours": {"485206": {"2026-07-09": 7.823333333333333, "2026-07-10": 7.3475, "2026-07-11": 6.914166666666667, "2026-07-12": 8.712222222222222, "2026-07-13": 9.398888888888889, "2026-07-14": 7.993888888888889, "2026-07-15": 6.17}, "485875": {"2026-07-09": 7.936944444444444, "2026-07-10": 7.164444444444444, "2026-07-11": 2.609166666666667, "2026-07-12": 4.2375, "2026-07-13": 7.145277777777777, "2026-07-14": 8.723888888888888, "2026-07-15": 7.891944444444444}, "48548c": {"2026-07-09": 8.899444444444445, "2026-07-10": 8.658611111111112, "2026-07-11": 7.946111111111111, "2026-07-12": 9.985277777777778, "2026-07-13": 7.704722222222222, "2026-07-14": 7.059722222222222, "2026-07-15": 5.504166666666666}}, "generated_at": "2026-07-16T10:26:12.846091+00:00", "data_source": "live"};
+
+const AIRCRAFT = DATA.aircraft; // {icao24: label}
+const DAYS = DATA.days;
+const HOURS = DATA.flight_hours; // {icao24: {date: hours}}
+const SERIES_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
+const icaoList = Object.keys(AIRCRAFT);
+
+function fmtDay(d) {
+  const dt = new Date(d + 'T00:00:00Z');
+  return dt.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+}
+function round1(n) { return Math.round(n * 10) / 10; }
+
+// ---------- derived data ----------
+const rows = []; // flat rows for table/stats
+icaoList.forEach(icao => {
+  DAYS.forEach(d => {
+    const h = HOURS[icao][d] || 0;
+    const ground = Math.max(0, 24 - h);
+    const util = round1(h / 24 * 100);
+    rows.push({ icao, label: AIRCRAFT[icao], date: d, hours: round1(h), ground: round1(ground), util });
+  });
+});
+
+const totalFlightHours = rows.reduce((s, r) => s + r.hours, 0);
+const totalGroundHours = rows.reduce((s, r) => s + r.ground, 0);
+const avgUtil = round1(rows.reduce((s, r) => s + r.util, 0) / rows.length);
+
+const perAircraftAvgUtil = icaoList.map(icao => {
+  const rs = rows.filter(r => r.icao === icao);
+  return { icao, label: AIRCRAFT[icao], avgUtil: round1(rs.reduce((s, r) => s + r.util, 0) / rs.length) };
+});
+perAircraftAvgUtil.sort((a, b) => b.avgUtil - a.avgUtil); // hoogste utilisatie eerst
+const mostUtilised = perAircraftAvgUtil[0];
+const leastUtilised = perAircraftAvgUtil[perAircraftAvgUtil.length - 1];
+
+document.getElementById('gen-time').textContent = DATA.generated_at.replace('T', ' ').slice(0, 16);
+document.getElementById('src-mode').textContent = DATA.data_source === 'live' ? 'live OpenSky-data' : 'voorbeelddata (geen credentials)';
+document.getElementById('src-claim').textContent = DATA.data_source === 'live'
+  ? 'Databron: OpenSky Network REST API (opensky-network.org/apidoc) — live opgehaald via /flights/aircraft, OAuth2-geauthenticeerd.'
+  : 'Databron: OpenSky Network REST API (opensky-network.org/apidoc) — dit dashboard toont momenteel voorbeelddata, gestructureerd naar het format van de OpenSky API (geen OPENSKY_CLIENT_ID/SECRET gevonden bij het genereren).';
+
+// ---------- stat tiles ----------
+const tilesEl = document.getElementById('tiles');
+const tileDefs = [
+  {
+    label: 'Gem. utilisatie (steekproef)', value: avgUtil + '<small>%</small>',
+    sub: 'Gemiddeld % van de dag dat de drie toestellen samen in de lucht waren.'
+  },
+  {
+    label: 'Totale onderhoudscapaciteit (7 dagen)', value: round1(totalGroundHours) + '<small> uur</small>',
+    sub: 'Som van de grondtijd over de drie toestellen — totale tijd beschikbaar voor RJC-onderhoud.'
+  },
+  {
+    label: 'Minste onderhoudsruimte', value: mostUtilised.label.split(' ')[0],
+    sub: `Gemiddeld ${mostUtilised.avgUtil}% utilisatie — krapste inplanning voor onderhoud.`,
+    flag: true
+  },
+  {
+    label: 'Meeste onderhoudsruimte', value: leastUtilised.label.split(' ')[0],
+    sub: `Gemiddeld ${leastUtilised.avgUtil}% utilisatie — meeste flexibiliteit voor inplanning.`
+  },
+];
+tileDefs.forEach(t => {
+  const div = document.createElement('div');
+  div.className = 'tile';
+  div.innerHTML = `
+    <div class="label"></div>
+    <div class="value"></div>
+    <div class="sub"></div>
+    ${t.flag ? '<div class="flag warn">⚠ krapste onderhoudsruimte</div>' : ''}
+  `;
+  div.querySelector('.label').textContent = t.label;
+  div.querySelector('.value').innerHTML = t.value;
+  div.querySelector('.sub').textContent = t.sub;
+  tilesEl.appendChild(div);
+});
+
+// ---------- tooltip ----------
+const tooltipEl = document.getElementById('tooltip');
+function showTooltip(x, y, html) {
+  tooltipEl.innerHTML = html;
+  tooltipEl.classList.add('show');
+  const rect = tooltipEl.getBoundingClientRect();
+  const margin = 12;
+  // Prefer right of the pointer; flip to the left when there isn't room.
+  let left = x + 14;
+  if (left + rect.width > window.innerWidth - margin) left = x - rect.width - 14;
+  // Clamp fully inside the viewport on both axes as a last resort.
+  left = Math.min(Math.max(left, margin), window.innerWidth - rect.width - margin);
+  let top = y - rect.height / 2;
+  top = Math.min(Math.max(top, margin), window.innerHeight - rect.height - margin);
+  tooltipEl.style.left = left + 'px';
+  tooltipEl.style.top = top + 'px';
+}
+function hideTooltip() { tooltipEl.classList.remove('show'); }
+
+// ---------- legend (shared factory) ----------
+function buildLegend(containerId, onToggle) {
+  const el = document.getElementById(containerId);
+  const active = new Set(icaoList);
+  icaoList.forEach((icao, i) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="swatch" style="background:${SERIES_COLORS[i]}"></span><span></span>`;
+    item.querySelector('span:last-child').textContent = AIRCRAFT[icao];
+    item.addEventListener('click', () => {
+      if (active.has(icao)) { active.delete(icao); item.classList.add('off'); }
+      else { active.add(icao); item.classList.remove('off'); }
+      onToggle(active);
+    });
+    el.appendChild(item);
+  });
+  return active;
+}
+
+// ================= BAR CHART =================
+(function () {
+  const W = 1000, H = 356, ML = 44, MR = 16, MT = 30, MB = 40;
+  const plotW = W - ML - MR, plotH = H - MT - MB;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', 'auto');
+  svg.style.display = 'block';
+  document.getElementById('chart-bar').appendChild(svg);
+
+  const yMax = 24;
+  const yTicks = [0, 6, 12, 18, 24];
+  yTicks.forEach(t => {
+    const y = MT + plotH - (t / yMax) * plotH;
+    const line = document.createElementNS(svg.namespaceURI, 'line');
+    line.setAttribute('x1', ML); line.setAttribute('x2', W - MR);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('class', t === 0 ? 'baseline' : 'gridline');
+    svg.appendChild(line);
+    const label = document.createElementNS(svg.namespaceURI, 'text');
+    label.setAttribute('x', ML - 8); label.setAttribute('y', y + 4);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('class', 'axis-label');
+    label.textContent = t + 'u';
+    svg.appendChild(label);
+  });
+
+  const groupW = plotW / DAYS.length;
+  const barW = Math.min(20, groupW / (icaoList.length + 1.4));
+  const barsGroup = document.createElementNS(svg.namespaceURI, 'g');
+  svg.appendChild(barsGroup);
+
+  DAYS.forEach((d, di) => {
+    const gx = ML + di * groupW + groupW / 2;
+    const label = document.createElementNS(svg.namespaceURI, 'text');
+    label.setAttribute('x', gx); label.setAttribute('y', H - MB + 20);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('class', 'axis-label');
+    label.textContent = fmtDay(d);
+    svg.appendChild(label);
+
+    icaoList.forEach((icao, si) => {
+      const h = round1(HOURS[icao][d] || 0);
+      const ground = round1(Math.max(0, 24 - h));
+      const util = round1(h / 24 * 100);
+      const barH = (h / yMax) * plotH;
+      const bx = gx - (icaoList.length * barW) / 2 + si * barW + 1;
+      const by = MT + plotH - barH;
+
+      const rect = document.createElementNS(svg.namespaceURI, 'rect');
+      rect.setAttribute('x', bx);
+      rect.setAttribute('y', by);
+      rect.setAttribute('width', barW - 2);
+      rect.setAttribute('height', Math.max(0, barH));
+      rect.setAttribute('rx', 4);
+      rect.setAttribute('fill', SERIES_COLORS[si]);
+      rect.setAttribute('class', 'bar');
+      rect.dataset.icao = icao;
+
+      const valueLabel = document.createElementNS(svg.namespaceURI, 'text');
+      valueLabel.setAttribute('x', bx + (barW - 2) / 2);
+      valueLabel.setAttribute('y', Math.max(by - 6, MT - 4));
+      valueLabel.setAttribute('text-anchor', 'middle');
+      valueLabel.setAttribute('class', 'axis-label');
+      valueLabel.setAttribute('font-size', '10');
+      valueLabel.dataset.icao = icao;
+      valueLabel.textContent = h;
+      barsGroup.appendChild(valueLabel);
+
+      const showTip = (evt) => {
+        showTooltip(evt.clientX, evt.clientY, `
+          <div class="tt-title">${AIRCRAFT[icao]} — ${fmtDay(d)}</div>
+          <div class="tt-row"><span class="tt-key" style="background:${SERIES_COLORS[si]}"></span>Vliegtijd <span class="tt-val" style="margin-left:auto">${h} uur</span></div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Grondtijd <span class="tt-val" style="margin-left:auto">${ground} uur</span></div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Utilisatie <span class="tt-val" style="margin-left:auto">${util}%</span></div>
+          <div class="tt-note">Utilisatie = percentage van de dag dat het toestel in de lucht was. Hoe hoger, hoe intensiever het toestel wordt ingezet en hoe minder tijd er overblijft voor onderhoud bij RJC.</div>
+        `);
+      };
+      rect.addEventListener('pointermove', showTip);
+      rect.addEventListener('pointerenter', showTip);
+      rect.addEventListener('pointerleave', hideTooltip);
+      barsGroup.appendChild(rect);
+    });
+  });
+
+  buildLegend('legend-bar', (active) => {
+    barsGroup.querySelectorAll('.bar, text[data-icao]').forEach(b => {
+      b.style.opacity = active.has(b.dataset.icao) ? '1' : '0.12';
+    });
+  });
+
+  // table view
+  const tableEl = document.getElementById('table-bar');
+  tableEl.innerHTML = buildTableHTML();
+  document.querySelector('[data-toggle="table-bar"]').addEventListener('click', (e) => {
+    const showing = !tableEl.classList.contains('hidden');
+    tableEl.classList.toggle('hidden', showing);
+    svg.parentElement.classList.toggle('hidden', !showing);
+    document.getElementById('legend-bar').classList.toggle('hidden', !showing);
+    e.target.textContent = showing ? 'Toon als tabel' : 'Toon als grafiek';
+  });
+})();
+
+// ================= LINE CHART (utilisatie %) =================
+(function () {
+  const W = 1000, H = 300, ML = 44, MR = 16, MT = 16, MB = 40;
+  const plotW = W - ML - MR, plotH = H - MT - MB;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.style.display = 'block';
+  document.getElementById('chart-line').appendChild(svg);
+
+  const yMax = 100;
+  [0, 25, 50, 75, 100].forEach(t => {
+    const y = MT + plotH - (t / yMax) * plotH;
+    const line = document.createElementNS(svg.namespaceURI, 'line');
+    line.setAttribute('x1', ML); line.setAttribute('x2', W - MR);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('class', t === 0 ? 'baseline' : 'gridline');
+    svg.appendChild(line);
+    const label = document.createElementNS(svg.namespaceURI, 'text');
+    label.setAttribute('x', ML - 8); label.setAttribute('y', y + 4);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('class', 'axis-label');
+    label.textContent = t + '%';
+    svg.appendChild(label);
+  });
+
+  const xStep = plotW / (DAYS.length - 1);
+  DAYS.forEach((d, i) => {
+    const x = ML + i * xStep;
+    const label = document.createElementNS(svg.namespaceURI, 'text');
+    label.setAttribute('x', x); label.setAttribute('y', H - MB + 20);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('class', 'axis-label');
+    label.textContent = fmtDay(d);
+    svg.appendChild(label);
+  });
+
+  const seriesGroup = document.createElementNS(svg.namespaceURI, 'g');
+  svg.appendChild(seriesGroup);
+  const dotsBySeries = {};
+
+  icaoList.forEach((icao, si) => {
+    const pts = DAYS.map((d, i) => {
+      const h = HOURS[icao][d] || 0;
+      const util = round1(h / 24 * 100);
+      return [ML + i * xStep, MT + plotH - (util / yMax) * plotH, util];
+    });
+    const path = document.createElementNS(svg.namespaceURI, 'path');
+    path.setAttribute('d', 'M ' + pts.map(p => p[0] + ' ' + p[1]).join(' L '));
+    path.setAttribute('class', 'lineseries');
+    path.setAttribute('stroke', SERIES_COLORS[si]);
+    path.dataset.icao = icao;
+    seriesGroup.appendChild(path);
+
+    dotsBySeries[icao] = [];
+    pts.forEach(([x, y, util], i) => {
+      const dot = document.createElementNS(svg.namespaceURI, 'circle');
+      dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 5);
+      dot.setAttribute('fill', SERIES_COLORS[si]);
+      dot.setAttribute('class', 'linedot');
+      dot.dataset.icao = icao;
+      const hitArea = document.createElementNS(svg.namespaceURI, 'circle');
+      hitArea.setAttribute('cx', x); hitArea.setAttribute('cy', y); hitArea.setAttribute('r', 13);
+      hitArea.setAttribute('fill', 'transparent');
+      hitArea.dataset.icao = icao;
+      const d = DAYS[i];
+      const h = round1(HOURS[icao][d] || 0);
+      const ground = round1(Math.max(0, 24 - h));
+      const showTip = (evt) => {
+        showTooltip(evt.clientX, evt.clientY, `
+          <div class="tt-title">${AIRCRAFT[icao]} — ${fmtDay(d)}</div>
+          <div class="tt-row"><span class="tt-key" style="background:${SERIES_COLORS[si]}"></span>Utilisatie <span class="tt-val" style="margin-left:auto">${util}%</span></div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Vliegtijd <span class="tt-val" style="margin-left:auto">${h} uur</span></div>
+          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Grondtijd <span class="tt-val" style="margin-left:auto">${ground} uur</span></div>
+          <div class="tt-note">Percentage van de dag dat het toestel in de lucht was — hoe hoger, hoe intensiever het toestel wordt ingezet en hoe minder tijd er beschikbaar is voor onderhoud bij RJC.</div>
+        `);
+      };
+      hitArea.addEventListener('pointermove', showTip);
+      hitArea.addEventListener('pointerenter', showTip);
+      hitArea.addEventListener('pointerleave', hideTooltip);
+      seriesGroup.appendChild(dot);
+      seriesGroup.appendChild(hitArea);
+      dotsBySeries[icao].push(dot, hitArea);
+    });
+  });
+
+  buildLegend('legend-line', (active) => {
+    seriesGroup.querySelectorAll('path, circle').forEach(el => {
+      el.style.opacity = active.has(el.dataset.icao) ? '1' : '0.12';
+    });
+  });
+
+  const tableEl = document.getElementById('table-line');
+  tableEl.innerHTML = buildTableHTML(true);
+  document.querySelector('[data-toggle="table-line"]').addEventListener('click', (e) => {
+    const showing = !tableEl.classList.contains('hidden');
+    tableEl.classList.toggle('hidden', showing);
+    svg.parentElement.classList.toggle('hidden', !showing);
+    document.getElementById('legend-line').classList.toggle('hidden', !showing);
+    e.target.textContent = showing ? 'Toon als tabel' : 'Toon als grafiek';
+  });
+})();
+
+function buildTableHTML() {
+  let html = '<table class="data-table"><thead><tr><th>Toestel</th><th>Datum</th><th>Vliegtijd (u)</th><th>Grondtijd (u)</th><th>Utilisatie (%)</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    html += `<tr><td>${r.label}</td><td>${fmtDay(r.date)}</td><td>${r.hours}</td><td>${r.ground}</td><td>${r.util}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+}
+</script>
