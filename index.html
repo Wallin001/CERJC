@@ -1,9 +1,10 @@
-<title>RJC Fleet Availability — KLM Cityhopper E175/E190</title>
+<meta charset="utf-8">
+<title>Onderhoudscapaciteit</title>
 <style>
   .viz-root {
     color-scheme: light;
     --surface-1:      #fcfcfb;
-    --page-plane:     #f9f9f7;
+    --page-plane:     #eef3fb;
     --text-primary:   #0b0b0b;
     --text-secondary: #52514e;
     --text-muted:     #898781;
@@ -11,9 +12,9 @@
     --baseline:       #c3c2b7;
     --border:         rgba(11,11,11,0.10);
     --success-text:   #006300;
-    --series-1:       #2a78d6; /* blue   — PH-EXE */
-    --series-2:       #008300; /* green  — PH-EXY */
-    --series-3:       #e87ba4; /* magenta — PH-EXK */
+    --series-1:       #2a78d6; /* blue   - PH-EXE */
+    --series-2:       #008300; /* green  - PH-EXY */
+    --series-3:       #e87ba4; /* magenta - PH-EXK */
     --status-good:    #0ca30c;
     --status-warning: #fab219;
     --status-serious: #ec835a;
@@ -23,7 +24,7 @@
     :root:where(:not([data-theme="light"])) .viz-root {
       color-scheme: dark;
       --surface-1:      #1a1a19;
-      --page-plane:     #0d0d0d;
+      --page-plane:     #0c1420;
       --text-primary:   #ffffff;
       --text-secondary: #c3c2b7;
       --text-muted:     #898781;
@@ -43,7 +44,7 @@
   :root[data-theme="dark"] .viz-root {
     color-scheme: dark;
     --surface-1:      #1a1a19;
-    --page-plane:     #0d0d0d;
+    --page-plane:     #0c1420;
     --text-primary:   #ffffff;
     --text-secondary: #c3c2b7;
     --text-muted:     #898781;
@@ -63,20 +64,99 @@
   * { box-sizing: border-box; }
   body { margin: 0; }
   .viz-root {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     background: var(--page-plane);
     color: var(--text-primary);
     min-height: 100vh;
-    padding: 32px 20px 64px;
+    padding: 0 0 64px;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  /* report bar - mimics a BI report canvas header */
+  .report-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    background: #14233b; color: #ffffff;
+    padding: 12px 24px; margin-bottom: 18px;
+  }
+  .report-bar .rb-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .report-bar .rb-logo {
+    flex: none; width: 26px; height: 26px; border-radius: 5px;
+    background: var(--series-1); display: flex; align-items: center; justify-content: center;
+  }
+  .report-bar .rb-logo svg { width: 15px; height: 15px; stroke: #fff; }
+  .report-bar .rb-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .report-bar .rb-crumb { font-size: 11.5px; color: rgba(255,255,255,0.55); }
+
+  /* slicer / filter pill row */
+  .slicer-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .slicer-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; color: var(--text-secondary);
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 12px;
+  }
+  .slicer-pill .slicer-key { color: var(--text-muted); font-weight: 500; }
+  .slicer-pill .slicer-val { color: var(--text-primary); font-weight: 700; }
+
+  /* page-tab bar - mimics BI report page tabs at the bottom */
+  .page-tabs {
+    display: flex; gap: 2px; margin-top: 28px; padding: 0 20px;
+    border-top: 1px solid var(--border);
+  }
+  .page-tabs .tab {
+    font-size: 11.5px; font-weight: 600; padding: 9px 16px; color: var(--text-muted);
+    border-top: 2px solid transparent; margin-top: -1px;
+  }
+  .page-tabs .tab.active { color: var(--series-1); border-top-color: var(--series-1); background: var(--surface-1); }
 
   header.page-head { margin-bottom: 28px; }
-  .eyebrow {
-    font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--series-1); margin: 0 0 8px;
+  .poc-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--series-1); background: color-mix(in srgb, var(--series-1) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--series-1) 24%, transparent);
+    border-radius: 999px; padding: 4px 12px 4px 10px; margin: 0 0 12px;
   }
-  h1 { font-size: 28px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .poc-badge::before { content: "●"; font-size: 8px; }
+  h1 { font-size: 30px; font-weight: 700; margin: 0 0 14px; letter-spacing: -0.015em; }
+
+  /* business vraag -> aanpak -> inzicht */
+  .flow-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    max-width: 960px; margin: 0 0 20px; padding: 0; list-style: none;
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  @media (max-width: 720px) { .flow-strip { grid-template-columns: 1fr; } }
+  .flow-strip li {
+    position: relative; padding: 14px 18px; background: var(--surface-1);
+    border-left: 1px solid var(--border);
+  }
+  .flow-strip li:first-child { border-left: none; }
+  .flow-strip .flow-label {
+    display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--series-1); margin-bottom: 5px;
+  }
+  .flow-strip p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); }
+  .flow-strip li:not(:last-child)::after {
+    content: "→"; position: absolute; right: -11px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; border-radius: 50%; background: var(--page-plane);
+    border: 1px solid var(--border); color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center; font-size: 11px; z-index: 1;
+  }
+  @media (max-width: 720px) { .flow-strip li:not(:last-child)::after { display: none; } }
+  .explainer {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    max-width: 880px; margin: 0 0 18px;
+    padding: 16px 18px; border-radius: 10px;
+    background: color-mix(in srgb, var(--series-1) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--series-1) 16%, var(--border));
+  }
+  @media (max-width: 640px) { .explainer { grid-template-columns: 1fr; } }
+  .explainer dt {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--series-1); margin: 0 0 4px;
+  }
+  .explainer dd { font-size: 13.5px; line-height: 1.55; color: var(--text-secondary); margin: 0; }
   .lede { font-size: 15px; line-height: 1.6; color: var(--text-secondary); max-width: 760px; margin: 0 0 4px; }
 
   .context-card {
@@ -109,16 +189,42 @@
   }
   @media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
   .tile {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
-    padding: 20px 22px;
+    position: relative;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 4px;
+    padding: 18px 20px 20px; box-shadow: 0 1px 3px rgba(16,24,40,0.08);
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
-  .tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
-  .tile .value { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .tile::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--series-1); border-radius: 4px 4px 0 0;
+  }
+  .tile.warn-tile::before { background: var(--status-serious); }
+  .tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16,24,40,0.12);
+    border-color: color-mix(in srgb, var(--series-1) 30%, var(--border));
+  }
+  .tile .tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .tile .icon {
+    flex: none; width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--series-1) 10%, transparent);
+    color: var(--series-1);
+  }
+  .tile .icon svg { width: 16px; height: 16px; }
+  .tile.warn-tile .icon { background: color-mix(in srgb, var(--status-serious) 14%, transparent); color: var(--status-serious); }
+  .tile .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary); margin-bottom: 8px; }
+  .tile .value { font-size: 27px; font-weight: 700; letter-spacing: -0.01em; margin-top: 12px; font-variant-numeric: tabular-nums; }
   .tile .value small { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
   .tile .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 6px; line-height: 1.4; }
   .tile .flag { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; margin-top:6px; }
   .tile .flag.warn { color: var(--status-serious); }
   .tile .flag svg { width: 12px; height: 12px; }
+  .tile .spark { display: block; margin-top: 10px; }
+  .tile .spark path.spark-fill { fill: var(--series-1); opacity: 0.08; }
+  .tile .spark path.spark-line { fill: none; stroke: var(--series-1); stroke-width: 1.5; }
+  .tile.warn-tile .spark path.spark-fill { fill: var(--status-serious); }
+  .tile.warn-tile .spark path.spark-line { stroke: var(--status-serious); }
 
   /* charts grid */
   .charts-grid {
@@ -129,10 +235,30 @@
 
   /* card */
   .card {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    position: relative;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 4px;
     padding: 20px 22px 12px; margin-bottom: 20px; min-width: 0;
+    box-shadow: 0 1px 3px rgba(16,24,40,0.08);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--series-1); border-radius: 4px 4px 0 0;
+  }
+  .charts-grid .card:hover {
+    border-color: color-mix(in srgb, var(--series-1) 22%, var(--border));
+    box-shadow: 0 6px 16px rgba(16,24,40,0.12);
   }
   .charts-grid .card { margin-bottom: 0; }
+  .full-width-card { margin-bottom: 20px; }
+  .card-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .card-title-row .icon {
+    flex: none; width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--series-1) 10%, transparent); color: var(--series-1);
+  }
+  .card-title-row .icon svg { width: 13px; height: 13px; }
+  .card-title-row .card-title { margin: 0; }
 
   .table-wrap {
     max-height: 360px; overflow-y: auto; overflow-x: auto;
@@ -193,15 +319,63 @@
 
   footer.page-foot { margin-top: 20px; font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
   footer.page-foot a { color: var(--text-muted); }
+
+  .next-steps {
+    margin-top: 24px; padding: 18px 20px; border-radius: 10px;
+    background: var(--surface-1); border: 1px solid var(--border);
+  }
+  .next-steps ul { margin: 8px 0 0; padding-left: 18px; }
+  .next-steps li { font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 4px 0; }
 </style>
 
 <div class="viz-root">
+
+  <div class="report-bar">
+    <div class="rb-left">
+      <span class="rb-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="16" y="3" width="4" height="17"/></svg>
+      </span>
+      <span class="rb-title">Onderhoudscapaciteit</span>
+      <span class="rb-crumb">/ Overzicht</span>
+    </div>
+  </div>
+
 <div class="wrap">
 
+  <div class="slicer-row">
+    <span class="slicer-pill"><span class="slicer-key">Periode</span> <span class="slicer-val">Laatste 30 dagen</span></span>
+    <span class="slicer-pill"><span class="slicer-key">Toestellen</span> <span class="slicer-val" id="slicer-fleet-count"></span></span>
+    <span class="slicer-pill"><span class="slicer-key">Bron</span> <span class="slicer-val" id="slicer-source"></span></span>
+  </div>
+
   <header class="page-head">
-    <p class="eyebrow">Regional Jet Center · Schiphol</p>
-    <h1>Fleet availability — KLM Cityhopper E175/E190</h1>
-    <p class="lede">Vliegtijd, grondtijd en utilisatie van drie Embraer-toestellen die onderhoud krijgen bij Regional Jet Center (RJC), afgelopen 7 dagen.</p>
+    <p class="poc-badge">Proof-of-concept - geen productiesysteem</p>
+    <h1>Onderhoudscapaciteit</h1>
+    <dl class="explainer">
+      <div>
+        <dt>Wat is dit?</dt>
+        <dd>Een MRO-capaciteitsanalyse: live vluchtdata van de OpenSky Network API omgezet naar de vraag die er voor een onderhoudsbedrijf toe doet - niet hoeveel een toestel vliegt, maar hoeveel tijd het per dag daadwerkelijk aan de grond staat en dus beschikbaar is om in te plannen voor onderhoud.</dd>
+      </div>
+      <div>
+        <dt>Wat zie je hier?</dt>
+        <dd>Per toestel en per dag: beschikbare grondtijd (uren), en hoe voorspelbaar dat onderhoudsvenster is over de afgelopen 30 dagen. Dat bepaalt welke toestellen zich lenen voor gepland onderhoud en welke alleen kort-cyclisch te benaderen zijn.</dd>
+      </div>
+    </dl>
+
+    <ol class="flow-strip">
+      <li>
+        <span class="flow-label">Business vraag</span>
+        <p>Welke toestellen in de vloot lenen zich het best voor vast gepland onderhoud, en welke vragen flexibele, kort-cyclische planning?</p>
+      </li>
+      <li>
+        <span class="flow-label">Data-aanpak</span>
+        <p>Publieke vluchtdata (OpenSky) omgezet naar grondtijd per toestel per dag; voorspelbaarheid berekend via de spreiding (σ) daarvan over 30 dagen.</p>
+      </li>
+      <li>
+        <span class="flow-label">Inzicht</span>
+        <p>Een ranking van toestellen op planbaarheid van hun onderhoudsvenster - een concreet startpunt voor het gesprek met de business.</p>
+      </li>
+    </ol>
   </header>
 
   <section class="tiles" id="tiles"></section>
@@ -210,8 +384,13 @@
     <section class="card">
       <div class="card-head">
         <div>
-          <p class="card-title">Vliegtijd per toestel per dag</p>
-          <p class="card-desc">Aantal uren dat elk toestel in de lucht was. De resterende uren tot 24 zijn grondtijd — beschikbaar voor RJC-onderhoud.</p>
+          <div class="card-title-row">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="20" x2="5" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14"/></svg>
+            </span>
+            <p class="card-title">Gemiddelde onderhoudscapaciteit per dag (vloot)</p>
+          </div>
+          <p class="card-desc">Gemiddelde beschikbare grondtijd per dag over de gevolgde vloot - de tijd die RJC daadwerkelijk kan inplannen - met de spreiding (min–max) tussen toestellen die dag.</p>
         </div>
         <button class="table-toggle" data-toggle="table-bar">Toon als tabel</button>
       </div>
@@ -223,8 +402,13 @@
     <section class="card">
       <div class="card-head">
         <div>
-          <p class="card-title">Utilisatie % — trend over de week</p>
-          <p class="card-desc">Percentage van elke dag dat het toestel vloog. Hoe hoger de lijn, hoe intensiever het toestel is ingezet en hoe minder ruimte er die dag was voor onderhoud bij RJC.</p>
+          <div class="card-title-row">
+            <span class="icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,17 9,11 13,15 21,6"/><polyline points="15,6 21,6 21,12"/></svg>
+            </span>
+            <p class="card-title">Vlootdruk (utilisatie %) - trend over 30 dagen</p>
+          </div>
+          <p class="card-desc">Gemiddeld percentage van de dag dat de vloot in de lucht was - de keerzijde van de capaciteitsgrafiek hiernaast. Hoe hoger de vlootdruk, hoe minder ruimte er die dag gemiddeld was voor RJC-onderhoud.</p>
         </div>
         <button class="table-toggle" data-toggle="table-line">Toon als tabel</button>
       </div>
@@ -234,44 +418,80 @@
     </section>
   </div>
 
+  <section class="card full-width-card">
+    <div class="card-head">
+      <div>
+        <div class="card-title-row">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>
+          </span>
+          <p class="card-title">Voorspelbaarheid van onderhoudsvensters (ranking)</p>
+        </div>
+        <p class="card-desc">Alle gevolgde toestellen gerangschikt op spreiding (σ) van hun dagelijkse grondtijd. Bovenaan = stabiel patroon, makkelijk vast in te plannen. Onderaan = sterk wisselend, alleen kort-cyclisch te benaderen.</p>
+      </div>
+      <button class="table-toggle" data-toggle="table-rank">Toon als tabel</button>
+    </div>
+    <div class="legend" id="legend-rank"></div>
+    <div id="chart-rank"></div>
+    <div id="table-rank" class="hidden table-wrap"></div>
+  </section>
+
   <div class="context-card">
-    Dit dashboard volgt drie Embraer E175/E190-toestellen van <b>KLM Cityhopper</b>
-    die line- en hangaaronderhoud krijgen bij <b>Regional Jet Center (RJC)</b> op
-    Schiphol. Door hun vluchtgeschiedenis te volgen, analyseren we vliegtuigen die
-    letterlijk bij RJC langskomen voor onderhoud. Fleet availability — grondtijd
-    versus vliegtijd — hangt direct samen met RJC's onderhoudsplanning: hoe meer
-    een toestel vliegt, hoe minder tijd er overblijft voor gepland onderhoud, en
-    hoe krapper RJC de hangaarcapaciteit moet inplannen rond de operationele vloot.
+    Dit dashboard volgt de Embraer E175/E190-vloot van <b>KLM Cityhopper</b>
+    die line- en hangaaronderhoud krijgt bij Regional Jet Center op Schiphol,
+    over de afgelopen 30 dagen. Voor een MRO-bedrijf is niet de vliegtijd
+    van een toestel het interessante cijfer, maar de grondtijd: dat is de
+    daadwerkelijk inplanbare capaciteit. Deze analyse zet de vluchtgeschiedenis
+    van elk toestel om naar beschikbare onderhoudscapaciteit per dag, en naar
+    hoe voorspelbaar die capaciteit is - toestellen met een stabiel
+    grondtijdpatroon lenen zich voor vast gepland onderhoud, toestellen met
+    sterk wisselende grondtijd vragen om kort-cyclische, flexibele planning.
     <span class="src" id="src-claim">Databron: OpenSky Network REST API (opensky-network.org/apidoc).</span>
+  </div>
+
+  <div class="next-steps">
+    <p class="foot-heading">Vervolgstappen (als dit een echte PoC voor RJC zou worden)</p>
+    <ul>
+      <li>Methode valideren met domeinexperts bij RJC en KLM Cityhopper, en aanvullen met interne planningsdata waar mogelijk.</li>
+      <li>Doorontwikkelen naar een terugkerende PowerBI-rapportage voor planners, met een vaste ververscyclus i.p.v. een eenmalige analyse.</li>
+      <li>Governance-afspraken maken over databronnen en definities (bijv. wat precies telt als "grondtijd" binnen RJC) voordat dit breder wordt uitgerold.</li>
+    </ul>
   </div>
 
   <footer class="page-foot">
     <p class="foot-heading">Bronnen</p>
     <ul class="source-list">
-      <li>OpenSky Network REST API — <a href="https://opensky-network.org/apidoc/" target="_blank" rel="noopener">opensky-network.org/apidoc</a></li>
-      <li>Regional Jet Center — <a href="https://www.rjc.nl" target="_blank" rel="noopener">rjc.nl</a></li>
-      <li>Vliegtuigregisterdatabase (ICAO24-hexcodes) — <a href="https://hexdb.io" target="_blank" rel="noopener">hexdb.io</a></li>
+      <li>OpenSky Network REST API - <a href="https://opensky-network.org/apidoc/" target="_blank" rel="noopener">opensky-network.org/apidoc</a></li>
+      <li>Regional Jet Center - <a href="https://www.rjc.nl" target="_blank" rel="noopener">rjc.nl</a></li>
+      <li>Vliegtuigregisterdatabase (ICAO24-hexcodes) - <a href="https://hexdb.io" target="_blank" rel="noopener">hexdb.io</a></li>
     </ul>
-    <p>
-      Toestellen: PH-EXE (Embraer E190, ICAO24 485206) · PH-EXY (Embraer E190, ICAO24 485875) ·
-      PH-EXK (Embraer E175, ICAO24 48548c) — hex-codes geverifieerd via de OpenSky/hexdb.io vliegtuigregisterdatabase.
+    <p id="fleet-footer-note">
+      Toestellen: <span id="fleet-count"></span> Embraer E175/E190-toestellen van KLM Cityhopper -
+      volledige lijst en ICAO24-hexcodes in de tabelweergave hierboven en in de broncode.
       Data gegenereerd: <span id="gen-time"></span> (UTC) · bron: <span id="src-mode"></span>.
     </p>
   </footer>
 
 </div>
+
+  <nav class="page-tabs" aria-label="Rapportpagina's">
+    <span class="tab active">Overzicht</span>
+  </nav>
+
 </div>
 
 <div class="tooltip" id="tooltip"></div>
 
 <script>
-const DATA = {"days": ["2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15"], "aircraft": {"485206": "PH-EXE (E190)", "485875": "PH-EXY (E190)", "48548c": "PH-EXK (E175)"}, "flight_hours": {"485206": {"2026-07-09": 7.823333333333333, "2026-07-10": 7.3475, "2026-07-11": 6.914166666666667, "2026-07-12": 8.712222222222222, "2026-07-13": 9.398888888888889, "2026-07-14": 7.993888888888889, "2026-07-15": 6.17}, "485875": {"2026-07-09": 7.936944444444444, "2026-07-10": 7.164444444444444, "2026-07-11": 2.609166666666667, "2026-07-12": 4.2375, "2026-07-13": 7.145277777777777, "2026-07-14": 8.723888888888888, "2026-07-15": 7.891944444444444}, "48548c": {"2026-07-09": 8.899444444444445, "2026-07-10": 8.658611111111112, "2026-07-11": 7.946111111111111, "2026-07-12": 9.985277777777778, "2026-07-13": 7.704722222222222, "2026-07-14": 7.059722222222222, "2026-07-15": 5.504166666666666}}, "generated_at": "2026-07-16T10:26:12.846091+00:00", "data_source": "live"};
+const DATA = {"days": ["2026-06-20", "2026-06-21", "2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07", "2026-07-08", "2026-07-09", "2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16", "2026-07-17", "2026-07-18", "2026-07-19"], "aircraft": {"4852f4": "PH-EXG (E175)", "4852f5": "PH-EXH (E175)", "4852f6": "PH-EXI (E175)", "4853f4": "PH-EXJ (E175)", "48548c": "PH-EXK (E175)", "48548e": "PH-EXL (E175)", "48548d": "PH-EXM (E175)", "4855d0": "PH-EXN (E175)", "4855d1": "PH-EXO (E175)", "4855d2": "PH-EXP (E175)", "485778": "PH-EXR (E175)", "485779": "PH-EXS (E175)", "485814": "PH-EXT (E175)", "485870": "PH-EXU (E175)", "485873": "PH-EXW (E175)", "485874": "PH-EXX (E175)", "485876": "PH-EXZ (E175)", "484b32": "PH-EZE (E190)", "484bd1": "PH-EZF (E190)", "484c1b": "PH-EZG (E190)", "484c24": "PH-EZH (E190)", "484c50": "PH-EZL (E190)", "484c51": "PH-EZM (E190)", "484c52": "PH-EZN (E190)", "484c53": "PH-EZO (E190)", "484c54": "PH-EZP (E190)", "484cc2": "PH-EZR (E190)", "484cc3": "PH-EZS (E190)", "485206": "PH-EXE (E190)", "485207": "PH-EXF (E190)", "485871": "PH-EXV (E190)", "485875": "PH-EXY (E190)"}, "flight_hours": {"4852f4": {"2026-06-20": 5.338611111111111, "2026-06-21": 4.551388888888889, "2026-06-22": 0.0, "2026-06-23": 7.936111111111111, "2026-06-24": 7.051111111111111, "2026-06-25": 8.694444444444445, "2026-06-26": 9.201944444444445, "2026-06-27": 7.296111111111111, "2026-06-28": 8.383333333333333, "2026-06-29": 7.909722222222222, "2026-06-30": 8.215277777777779, "2026-07-01": 10.063888888888888, "2026-07-02": 8.285277777777777, "2026-07-03": 6.948333333333333, "2026-07-04": 6.513333333333334, "2026-07-05": 0.0, "2026-07-06": 0.0, "2026-07-07": 0.0, "2026-07-08": 0.0, "2026-07-09": 0.0, "2026-07-10": 0.0, "2026-07-11": 0.0, "2026-07-12": 8.4925, "2026-07-13": 5.963055555555556, "2026-07-14": 7.448611111111111, "2026-07-15": 5.164444444444444, "2026-07-16": 8.640555555555556, "2026-07-17": 6.106111111111111, "2026-07-18": 6.677222222222222, "2026-07-19": 1.2430555555555556}, "4852f5": {"2026-06-20": 0.0, "2026-06-21": 0.0, "2026-06-22": 6.650833333333333, "2026-06-23": 5.641666666666667, "2026-06-24": 4.9525, "2026-06-25": 6.9783333333333335, "2026-06-26": 7.173055555555556, "2026-06-27": 8.716944444444444, "2026-06-28": 5.618333333333333, "2026-06-29": 7.83, "2026-06-30": 7.668333333333333, "2026-07-01": 6.604722222222223, "2026-07-02": 6.226388888888889, "2026-07-03": 6.731388888888889, "2026-07-04": 6.124444444444444, "2026-07-05": 6.926111111111111, "2026-07-06": 7.338055555555556, "2026-07-07": 8.383333333333333, "2026-07-08": 6.2283333333333335, "2026-07-09": 7.891388888888889, "2026-07-10": 8.053333333333333, "2026-07-11": 5.3052777777777775, "2026-07-12": 8.028888888888888, "2026-07-13": 8.190555555555555, "2026-07-14": 5.260277777777778, "2026-07-15": 0.5141666666666667, "2026-07-16": 7.404444444444445, "2026-07-17": 3.6030555555555557, "2026-07-18": 5.244722222222222, "2026-07-19": 0.8538888888888889}, "4852f6": {"2026-06-20": 5.891944444444444, "2026-06-21": 6.2652777777777775, "2026-06-22": 7.549444444444444, "2026-06-23": 9.221944444444444, "2026-06-24": 5.886666666666667, "2026-06-25": 9.226944444444445, "2026-06-26": 6.085555555555556, "2026-06-27": 8.499166666666667, "2026-06-28": 6.441944444444444, "2026-06-29": 7.780277777777778, "2026-06-30": 7.9847222222222225, "2026-07-01": 4.663888888888889, "2026-07-02": 4.6425, "2026-07-03": 7.893055555555556, "2026-07-04": 10.015555555555556, "2026-07-05": 6.3341666666666665, "2026-07-06": 5.893611111111111, "2026-07-07": 7.389166666666667, "2026-07-08": 7.486944444444444, "2026-07-09": 5.5441666666666665, "2026-07-10": 7.747222222222222, "2026-07-11": 6.670833333333333, "2026-07-12": 7.373333333333333, "2026-07-13": 7.430833333333333, "2026-07-14": 8.56638888888889, "2026-07-15": 7.690555555555555, "2026-07-16": 6.3822222222222225, "2026-07-17": 7.7058333333333335, "2026-07-18": 7.479722222222223, "2026-07-19": 0.8480555555555556}, "4853f4": {"2026-06-20": 2.763333333333333, "2026-06-21": 7.591388888888889, "2026-06-22": 4.744166666666667, "2026-06-23": 5.286944444444444, "2026-06-24": 4.059166666666667, "2026-06-25": 2.644722222222222, "2026-06-26": 7.335, "2026-06-27": 5.383611111111111, "2026-06-28": 8.320833333333333, "2026-06-29": 1.6375, "2026-06-30": 6.348611111111111, "2026-07-01": 8.13, "2026-07-02": 7.955, "2026-07-03": 7.015, "2026-07-04": 8.563611111111111, "2026-07-05": 10.060833333333333, "2026-07-06": 8.522777777777778, "2026-07-07": 9.304722222222223, "2026-07-08": 8.093055555555555, "2026-07-09": 5.983888888888889, "2026-07-10": 7.245277777777778, "2026-07-11": 8.337222222222222, "2026-07-12": 7.5055555555555555, "2026-07-13": 5.364444444444445, "2026-07-14": 5.051111111111111, "2026-07-15": 6.439722222222223, "2026-07-16": 7.855833333333333, "2026-07-17": 8.928055555555556, "2026-07-18": 7.7825, "2026-07-19": 1.1694444444444445}, "48548c": {"2026-06-20": 7.507777777777778, "2026-06-21": 8.27361111111111, "2026-06-22": 6.920277777777778, "2026-06-23": 6.029444444444445, "2026-06-24": 8.50611111111111, "2026-06-25": 7.285277777777778, "2026-06-26": 8.273888888888889, "2026-06-27": 7.385833333333333, "2026-06-28": 5.971111111111111, "2026-06-29": 8.85138888888889, "2026-06-30": 5.953055555555555, "2026-07-01": 2.6416666666666666, "2026-07-02": 7.212777777777778, "2026-07-03": 8.562777777777777, "2026-07-04": 8.378333333333334, "2026-07-05": 8.545, "2026-07-06": 8.3525, "2026-07-07": 9.186944444444444, "2026-07-08": 4.452222222222222, "2026-07-09": 8.899444444444445, "2026-07-10": 8.658611111111112, "2026-07-11": 7.946111111111111, "2026-07-12": 9.985277777777778, "2026-07-13": 7.704722222222222, "2026-07-14": 7.059722222222222, "2026-07-15": 5.504166666666666, "2026-07-16": 8.126666666666667, "2026-07-17": 8.331111111111111, "2026-07-18": 7.474722222222222, "2026-07-19": 7.888333333333334}, "48548e": {"2026-06-20": 6.462777777777778, "2026-06-21": 7.527777777777778, "2026-06-22": 7.650555555555556, "2026-06-23": 8.6025, "2026-06-24": 7.108888888888889, "2026-06-25": 6.208055555555555, "2026-06-26": 0.0, "2026-06-27": 0.0, "2026-06-28": 0.0, "2026-06-29": 0.0, "2026-06-30": 5.118333333333333, "2026-07-01": 8.8675, "2026-07-02": 5.2675, "2026-07-03": 8.371944444444445, "2026-07-04": 6.961944444444445, "2026-07-05": 6.823333333333333, "2026-07-06": 8.187222222222223, "2026-07-07": 6.456944444444445, "2026-07-08": 0.0, "2026-07-09": 7.161944444444444, "2026-07-10": 6.430555555555555, "2026-07-11": 4.925833333333333, "2026-07-12": 5.749722222222222, "2026-07-13": 7.845833333333333, "2026-07-14": 7.7575, "2026-07-15": 8.186111111111112, "2026-07-16": 7.100555555555555, "2026-07-17": 1.7061111111111111, "2026-07-18": 5.677222222222222, "2026-07-19": 6.4075}, "48548d": {"2026-06-20": 7.092777777777778, "2026-06-21": 8.005, "2026-06-22": 6.188888888888889, "2026-06-23": 7.743055555555555, "2026-06-24": 8.175833333333333, "2026-06-25": 7.056388888888889, "2026-06-26": 0.0, "2026-06-27": 4.589166666666666, "2026-06-28": 7.1175, "2026-06-29": 7.009444444444444, "2026-06-30": 6.930555555555555, "2026-07-01": 7.829166666666667, "2026-07-02": 7.065277777777778, "2026-07-03": 7.879444444444444, "2026-07-04": 5.657222222222222, "2026-07-05": 8.308055555555555, "2026-07-06": 9.728333333333333, "2026-07-07": 7.961111111111111, "2026-07-08": 8.390833333333333, "2026-07-09": 9.206944444444444, "2026-07-10": 7.926666666666667, "2026-07-11": 9.642222222222221, "2026-07-12": 0.7794444444444445, "2026-07-13": 6.351944444444444, "2026-07-14": 8.078611111111112, "2026-07-15": 9.35388888888889, "2026-07-16": 8.078055555555556, "2026-07-17": 7.985277777777778, "2026-07-18": 8.73638888888889, "2026-07-19": 5.8869444444444445}, "4855d0": {"2026-06-20": 8.000833333333333, "2026-06-21": 5.486111111111111, "2026-06-22": 5.72, "2026-06-23": 8.940277777777778, "2026-06-24": 8.25361111111111, "2026-06-25": 8.221666666666666, "2026-06-26": 9.073888888888888, "2026-06-27": 6.868333333333333, "2026-06-28": 8.143611111111111, "2026-06-29": 8.506388888888889, "2026-06-30": 6.704444444444444, "2026-07-01": 6.046666666666667, "2026-07-02": 7.548611111111111, "2026-07-03": 8.318055555555556, "2026-07-04": 5.998055555555555, "2026-07-05": 5.8372222222222225, "2026-07-06": 5.672777777777778, "2026-07-07": 7.385555555555555, "2026-07-08": 6.495277777777778, "2026-07-09": 7.978611111111111, "2026-07-10": 7.335833333333333, "2026-07-11": 6.950555555555556, "2026-07-12": 7.603055555555556, "2026-07-13": 8.0925, "2026-07-14": 6.720833333333333, "2026-07-15": 6.504444444444444, "2026-07-16": 6.550833333333333, "2026-07-17": 8.485277777777778, "2026-07-18": 8.13111111111111, "2026-07-19": 5.999444444444444}, "4855d1": {"2026-06-20": 9.001944444444444, "2026-06-21": 6.554722222222222, "2026-06-22": 8.908055555555556, "2026-06-23": 6.743611111111111, "2026-06-24": 5.828055555555555, "2026-06-25": 2.183611111111111, "2026-06-26": 9.443055555555556, "2026-06-27": 3.2933333333333334, "2026-06-28": 7.714166666666666, "2026-06-29": 8.311944444444444, "2026-06-30": 7.463333333333333, "2026-07-01": 8.706111111111111, "2026-07-02": 8.970555555555556, "2026-07-03": 8.04, "2026-07-04": 6.343055555555556, "2026-07-05": 6.194444444444445, "2026-07-06": 7.172777777777778, "2026-07-07": 8.85, "2026-07-08": 7.036666666666667, "2026-07-09": 6.261666666666667, "2026-07-10": 7.7725, "2026-07-11": 7.797777777777778, "2026-07-12": 8.408333333333333, "2026-07-13": 8.901111111111112, "2026-07-14": 8.884444444444444, "2026-07-15": 8.4275, "2026-07-16": 8.56, "2026-07-17": 6.253055555555555, "2026-07-18": 4.5125, "2026-07-19": 6.099444444444444}, "4855d2": {"2026-06-20": 0.0, "2026-06-21": 0.0, "2026-06-22": 0.0, "2026-06-23": 0.0, "2026-06-24": 0.0, "2026-06-25": 0.0, "2026-06-26": 0.0, "2026-06-27": 1.6722222222222223, "2026-06-28": 4.766666666666667, "2026-06-29": 3.098333333333333, "2026-06-30": 3.2594444444444446, "2026-07-01": 6.403611111111111, "2026-07-02": 7.1525, "2026-07-03": 7.509166666666666, "2026-07-04": 1.668611111111111, "2026-07-05": 6.733055555555556, "2026-07-06": 9.034722222222221, "2026-07-07": 7.71, "2026-07-08": 6.279722222222222, "2026-07-09": 8.570833333333333, "2026-07-10": 6.124722222222222, "2026-07-11": 7.001111111111111, "2026-07-12": 4.185277777777777, "2026-07-13": 8.13888888888889, "2026-07-14": 8.535, "2026-07-15": 7.691111111111111, "2026-07-16": 9.444444444444445, "2026-07-17": 8.755833333333333, "2026-07-18": 0.0, "2026-07-19": 2.0019444444444443}, "485778": {"2026-06-20": 8.688611111111111, "2026-06-21": 7.8613888888888885, "2026-06-22": 6.3405555555555555, "2026-06-23": 6.1322222222222225, "2026-06-24": 8.297222222222222, "2026-06-25": 8.028055555555556, "2026-06-26": 6.996666666666667, "2026-06-27": 7.9061111111111115, "2026-06-28": 7.8869444444444445, "2026-06-29": 8.599722222222223, "2026-06-30": 8.368055555555555, "2026-07-01": 7.059166666666667, "2026-07-02": 6.1775, "2026-07-03": 5.6975, "2026-07-04": 5.333888888888889, "2026-07-05": 7.363611111111111, "2026-07-06": 7.813888888888889, "2026-07-07": 8.608888888888888, "2026-07-08": 9.029166666666667, "2026-07-09": 7.4463888888888885, "2026-07-10": 1.9213888888888888, "2026-07-11": 6.25, "2026-07-12": 6.995833333333334, "2026-07-13": 7.345, "2026-07-14": 6.195555555555556, "2026-07-15": 5.849444444444444, "2026-07-16": 5.4927777777777775, "2026-07-17": 7.256111111111111, "2026-07-18": 3.9894444444444446, "2026-07-19": 7.801111111111111}, "485779": {"2026-06-20": 6.668333333333333, "2026-06-21": 4.227222222222222, "2026-06-22": 4.817222222222222, "2026-06-23": 8.639166666666666, "2026-06-24": 8.181666666666667, "2026-06-25": 8.276944444444444, "2026-06-26": 6.9030555555555555, "2026-06-27": 6.5, "2026-06-28": 8.481111111111112, "2026-06-29": 6.996666666666667, "2026-06-30": 6.914722222222222, "2026-07-01": 8.7025, "2026-07-02": 7.21, "2026-07-03": 7.81, "2026-07-04": 8.045833333333333, "2026-07-05": 9.090555555555556, "2026-07-06": 8.392222222222221, "2026-07-07": 7.695555555555556, "2026-07-08": 8.598055555555556, "2026-07-09": 6.602222222222222, "2026-07-10": 7.924444444444444, "2026-07-11": 5.554722222222222, "2026-07-12": 6.919444444444444, "2026-07-13": 8.89, "2026-07-14": 8.499722222222223, "2026-07-15": 7.6097222222222225, "2026-07-16": 6.574166666666667, "2026-07-17": 8.154444444444444, "2026-07-18": 6.200555555555556, "2026-07-19": 2.6619444444444444}, "485814": {"2026-06-20": 4.885, "2026-06-21": 7.851666666666667, "2026-06-22": 8.174166666666666, "2026-06-23": 6.950555555555556, "2026-06-24": 0.0, "2026-06-25": 7.879444444444444, "2026-06-26": 8.125555555555556, "2026-06-27": 6.016388888888889, "2026-06-28": 5.091944444444445, "2026-06-29": 8.232222222222223, "2026-06-30": 7.256944444444445, "2026-07-01": 7.1225, "2026-07-02": 7.3213888888888885, "2026-07-03": 8.206944444444444, "2026-07-04": 8.595, "2026-07-05": 6.729444444444445, "2026-07-06": 7.726111111111111, "2026-07-07": 7.8475, "2026-07-08": 5.092222222222222, "2026-07-09": 6.555, "2026-07-10": 6.304722222222222, "2026-07-11": 6.900833333333333, "2026-07-12": 7.498611111111111, "2026-07-13": 6.995277777777778, "2026-07-14": 6.597222222222222, "2026-07-15": 7.006944444444445, "2026-07-16": 1.768888888888889, "2026-07-17": 8.786666666666667, "2026-07-18": 0.0, "2026-07-19": 7.008055555555556}, "485870": {"2026-06-20": 7.788333333333333, "2026-06-21": 6.530555555555556, "2026-06-22": 6.915, "2026-06-23": 1.3641666666666667, "2026-06-24": 7.958333333333333, "2026-06-25": 7.338888888888889, "2026-06-26": 7.328333333333333, "2026-06-27": 6.542222222222223, "2026-06-28": 7.570277777777778, "2026-06-29": 6.943333333333333, "2026-06-30": 7.659166666666667, "2026-07-01": 8.615277777777777, "2026-07-02": 9.144722222222223, "2026-07-03": 8.048333333333334, "2026-07-04": 8.482777777777779, "2026-07-05": 7.860833333333333, "2026-07-06": 6.665, "2026-07-07": 6.459722222222222, "2026-07-08": 7.441388888888889, "2026-07-09": 7.655833333333334, "2026-07-10": 6.8, "2026-07-11": 7.380833333333333, "2026-07-12": 5.7475, "2026-07-13": 6.779444444444445, "2026-07-14": 7.8036111111111115, "2026-07-15": 8.975555555555555, "2026-07-16": 7.8308333333333335, "2026-07-17": 5.928888888888889, "2026-07-18": 7.870555555555556, "2026-07-19": 6.377777777777778}, "485873": {"2026-06-20": 5.368888888888889, "2026-06-21": 7.7363888888888885, "2026-06-22": 4.206111111111111, "2026-06-23": 4.880277777777778, "2026-06-24": 6.9944444444444445, "2026-06-25": 6.86, "2026-06-26": 8.447777777777778, "2026-06-27": 7.795277777777778, "2026-06-28": 6.918888888888889, "2026-06-29": 7.2411111111111115, "2026-06-30": 7.5175, "2026-07-01": 6.860833333333333, "2026-07-02": 7.06, "2026-07-03": 8.284722222222221, "2026-07-04": 5.457222222222223, "2026-07-05": 8.801944444444445, "2026-07-06": 7.637777777777778, "2026-07-07": 8.0725, "2026-07-08": 6.0425, "2026-07-09": 6.874444444444444, "2026-07-10": 8.53, "2026-07-11": 6.884722222222222, "2026-07-12": 7.364444444444445, "2026-07-13": 6.269166666666667, "2026-07-14": 7.315833333333333, "2026-07-15": 6.7155555555555555, "2026-07-16": 8.084444444444445, "2026-07-17": 7.295277777777778, "2026-07-18": 8.856666666666667, "2026-07-19": 6.181111111111111}, "485874": {"2026-06-20": 6.2619444444444445, "2026-06-21": 3.7402777777777776, "2026-06-22": 7.310833333333333, "2026-06-23": 7.255, "2026-06-24": 8.327222222222222, "2026-06-25": 7.075, "2026-06-26": 5.139722222222222, "2026-06-27": 6.513055555555556, "2026-06-28": 5.7825, "2026-06-29": 7.998611111111111, "2026-06-30": 8.648888888888889, "2026-07-01": 9.400555555555556, "2026-07-02": 8.195, "2026-07-03": 7.9525, "2026-07-04": 5.665555555555556, "2026-07-05": 6.279444444444445, "2026-07-06": 5.808888888888889, "2026-07-07": 1.4494444444444445, "2026-07-08": 2.6847222222222222, "2026-07-09": 7.475555555555555, "2026-07-10": 8.299444444444445, "2026-07-11": 8.176944444444445, "2026-07-12": 7.093333333333334, "2026-07-13": 8.0425, "2026-07-14": 6.1819444444444445, "2026-07-15": 7.7025, "2026-07-16": 8.510555555555555, "2026-07-17": 10.669722222222223, "2026-07-18": 8.598333333333333, "2026-07-19": 7.873333333333333}}, "generated_at": "2026-07-22T17:07:14.981413+00:00", "data_source": "live"};
 
 const AIRCRAFT = DATA.aircraft; // {icao24: label}
 const DAYS = DATA.days;
 const HOURS = DATA.flight_hours; // {icao24: {date: hours}}
-const SERIES_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
-const icaoList = Object.keys(AIRCRAFT);
+// icaoList = alleen toestellen waarvoor daadwerkelijk data is opgehaald
+// (kan kleiner zijn dan AIRCRAFT tijdens het meerdaags hervatten na een OpenSky-quotalimiet)
+const icaoList = Object.keys(HOURS);
+const fleetTargetSize = Object.keys(AIRCRAFT).length;
 
 function fmtDay(d) {
   const dt = new Date(d + 'T00:00:00Z');
@@ -292,6 +512,7 @@ icaoList.forEach(icao => {
 
 const totalFlightHours = rows.reduce((s, r) => s + r.hours, 0);
 const totalGroundHours = rows.reduce((s, r) => s + r.ground, 0);
+const avgGroundPerAircraftDay = round1(totalGroundHours / rows.length);
 const avgUtil = round1(rows.reduce((s, r) => s + r.util, 0) / rows.length);
 
 const perAircraftAvgUtil = icaoList.map(icao => {
@@ -302,41 +523,116 @@ perAircraftAvgUtil.sort((a, b) => b.avgUtil - a.avgUtil); // hoogste utilisatie 
 const mostUtilised = perAircraftAvgUtil[0];
 const leastUtilised = perAircraftAvgUtil[perAircraftAvgUtil.length - 1];
 
+// Voorspelbaarheid van het onderhoudsvenster per toestel: hoe meer de dagelijkse
+// grondtijd varieert (stdev), hoe lastiger voor RJC om vooraf een vast
+// onderhoudsblok in te plannen. Laag = stabiel en goed plembaar; hoog = alleen
+// kort-cyclisch/opportunistisch onderhoud mogelijk.
+const perAircraftGroundStats = icaoList.map(icao => {
+  const groundVals = rows.filter(r => r.icao === icao).map(r => r.ground);
+  const avgGround = groundVals.reduce((s, v) => s + v, 0) / groundVals.length;
+  const variance = groundVals.reduce((s, v) => s + (v - avgGround) ** 2, 0) / groundVals.length;
+  return { icao, label: AIRCRAFT[icao], avgGround: round1(avgGround), stdev: round1(Math.sqrt(variance)) };
+});
+perAircraftGroundStats.sort((a, b) => b.stdev - a.stdev); // meest onvoorspelbaar eerst
+const leastPredictable = perAircraftGroundStats[0];
+const mostPredictable = perAircraftGroundStats[perAircraftGroundStats.length - 1];
+
 document.getElementById('gen-time').textContent = DATA.generated_at.replace('T', ' ').slice(0, 16);
 document.getElementById('src-mode').textContent = DATA.data_source === 'live' ? 'live OpenSky-data' : 'voorbeelddata (geen credentials)';
 document.getElementById('src-claim').textContent = DATA.data_source === 'live'
-  ? 'Databron: OpenSky Network REST API (opensky-network.org/apidoc) — live opgehaald via /flights/aircraft, OAuth2-geauthenticeerd.'
-  : 'Databron: OpenSky Network REST API (opensky-network.org/apidoc) — dit dashboard toont momenteel voorbeelddata, gestructureerd naar het format van de OpenSky API (geen OPENSKY_CLIENT_ID/SECRET gevonden bij het genereren).';
+  ? 'Databron: OpenSky Network REST API (opensky-network.org/apidoc) - live opgehaald via /flights/aircraft, OAuth2-geauthenticeerd.'
+  : 'Databron: OpenSky Network REST API (opensky-network.org/apidoc) - dit dashboard toont momenteel voorbeelddata, gestructureerd naar het format van de OpenSky API (geen OPENSKY_CLIENT_ID/SECRET gevonden bij het genereren).';
+document.getElementById('fleet-count').textContent = icaoList.length === fleetTargetSize
+  ? String(icaoList.length)
+  : `${icaoList.length} van de ${fleetTargetSize}`;
+
+// slicer row
+document.getElementById('slicer-fleet-count').textContent = `${icaoList.length} / ${fleetTargetSize}`;
+document.getElementById('slicer-source').textContent = DATA.data_source === 'live' ? 'OpenSky (live)' : 'Voorbeelddata';
+
+// ---------- fleet-aggregate per dag (gemiddelde + min/max spreiding) ----------
+const dailyStats = DAYS.map(d => {
+  const hoursArr = icaoList.map(icao => HOURS[icao][d] || 0);
+  const groundArr = hoursArr.map(h => round1(Math.max(0, 24 - h)));
+  const utilArr = hoursArr.map(h => round1(h / 24 * 100));
+  const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+  return {
+    date: d,
+    meanHours: round1(mean(hoursArr)),
+    minHours: round1(Math.min(...hoursArr)),
+    maxHours: round1(Math.max(...hoursArr)),
+    meanGround: round1(mean(groundArr)),
+    minGround: round1(Math.min(...groundArr)),
+    maxGround: round1(Math.max(...groundArr)),
+    meanUtil: round1(mean(utilArr)),
+    minUtil: round1(Math.min(...utilArr)),
+    maxUtil: round1(Math.max(...utilArr)),
+  };
+});
+
+// ---------- sparkline (12-24pt trend, part of the stat-tile figure contract) ----------
+function sparklineSVG(values) {
+  const W = 100, H = 28, PAD = 2;
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = max - min || 1;
+  const step = (W - PAD * 2) / (values.length - 1 || 1);
+  const pts = values.map((v, i) => [PAD + i * step, H - PAD - ((v - min) / range) * (H - PAD * 2)]);
+  const line = 'M ' + pts.map(p => p.join(' ')).join(' L ');
+  const fill = line + ` L ${pts[pts.length - 1][0]} ${H} L ${pts[0][0]} ${H} Z`;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <path class="spark-fill" d="${fill}"></path>
+    <path class="spark-line" d="${line}"></path>
+  </svg>`;
+}
+
+const ICONS = {
+  wrench: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.6 5l-6 6a1.4 1.4 0 0 0 2 2l6-6a4 4 0 0 0 5-5.6l-2.7 2.7-2-2 2.3-2.1Z"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15.5,14"/></svg>',
+  shuffle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,17 8,17 13,7 21,7"/><polyline points="17,4 21,7 17,10"/><polyline points="3,7 8,7 10.5,11.5"/><polyline points="13.5,12.5 16,17 21,17"/><polyline points="17,14 21,17 17,20"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8,12.5 11,15.5 16,9"/></svg>',
+};
 
 // ---------- stat tiles ----------
 const tilesEl = document.getElementById('tiles');
 const tileDefs = [
   {
-    label: 'Gem. utilisatie (steekproef)', value: avgUtil + '<small>%</small>',
-    sub: 'Gemiddeld % van de dag dat de drie toestellen samen in de lucht waren.'
+    icon: ICONS.wrench,
+    label: 'Totale onderhoudscapaciteit (30 dagen)', value: round1(totalGroundHours) + '<small> uur</small>',
+    sub: `Som van de grondtijd over alle ${icaoList.length} gevolgde toestellen - totale beschikbare RJC-capaciteit.`,
+    spark: dailyStats.map(s => round1(icaoList.length * (24 - s.meanHours))),
   },
   {
-    label: 'Totale onderhoudscapaciteit (7 dagen)', value: round1(totalGroundHours) + '<small> uur</small>',
-    sub: 'Som van de grondtijd over de drie toestellen — totale tijd beschikbaar voor RJC-onderhoud.'
+    icon: ICONS.clock,
+    label: 'Gem. capaciteit per toestel/dag', value: avgGroundPerAircraftDay + '<small> uur</small>',
+    sub: 'Gemiddeld aantal uur per toestel per dag dat daadwerkelijk beschikbaar is voor onderhoud.',
+    spark: dailyStats.map(s => round1(24 - s.meanHours)),
   },
   {
-    label: 'Minste onderhoudsruimte', value: mostUtilised.label.split(' ')[0],
-    sub: `Gemiddeld ${mostUtilised.avgUtil}% utilisatie — krapste inplanning voor onderhoud.`,
+    icon: ICONS.shuffle,
+    label: 'Minst voorspelbaar onderhoudsvenster', value: leastPredictable.label.split(' ')[0],
+    sub: `Grondtijd varieert ±${leastPredictable.stdev} uur/dag - lastig vooraf een vast onderhoudsblok voor in te plannen.`,
+    spark: rows.filter(r => r.icao === leastPredictable.icao).map(r => r.ground),
     flag: true
   },
   {
-    label: 'Meeste onderhoudsruimte', value: leastUtilised.label.split(' ')[0],
-    sub: `Gemiddeld ${leastUtilised.avgUtil}% utilisatie — meeste flexibiliteit voor inplanning.`
+    icon: ICONS.check,
+    label: 'Meest voorspelbaar onderhoudsvenster', value: mostPredictable.label.split(' ')[0],
+    sub: `Grondtijd varieert slechts ±${mostPredictable.stdev} uur/dag - stabiel en goed te plannen voor vast onderhoud.`,
+    spark: rows.filter(r => r.icao === mostPredictable.icao).map(r => r.ground),
   },
 ];
 tileDefs.forEach(t => {
   const div = document.createElement('div');
-  div.className = 'tile';
+  div.className = 'tile' + (t.flag ? ' warn-tile' : '');
   div.innerHTML = `
-    <div class="label"></div>
+    <div class="tile-top">
+      <div class="label"></div>
+      <div class="icon" aria-hidden="true">${t.icon}</div>
+    </div>
     <div class="value"></div>
     <div class="sub"></div>
-    ${t.flag ? '<div class="flag warn">⚠ krapste onderhoudsruimte</div>' : ''}
+    ${t.flag ? '<div class="flag warn">⚠ onvoorspelbaar</div>' : ''}
+    ${sparklineSVG(t.spark)}
   `;
   div.querySelector('.label').textContent = t.label;
   div.querySelector('.value').innerHTML = t.value;
@@ -363,26 +659,31 @@ function showTooltip(x, y, html) {
 }
 function hideTooltip() { tooltipEl.classList.remove('show'); }
 
-// ---------- legend (shared factory) ----------
-function buildLegend(containerId, onToggle) {
+// ---------- static (non-toggle) legend for aggregate charts ----------
+function buildStaticLegend(containerId, items) {
   const el = document.getElementById(containerId);
-  const active = new Set(icaoList);
-  icaoList.forEach((icao, i) => {
-    const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `<span class="swatch" style="background:${SERIES_COLORS[i]}"></span><span></span>`;
-    item.querySelector('span:last-child').textContent = AIRCRAFT[icao];
-    item.addEventListener('click', () => {
-      if (active.has(icao)) { active.delete(icao); item.classList.add('off'); }
-      else { active.add(icao); item.classList.remove('off'); }
-      onToggle(active);
-    });
-    el.appendChild(item);
+  items.forEach(item => {
+    const el2 = document.createElement('div');
+    el2.className = 'legend-item';
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.style.background = item.color;
+    if (item.type === 'band') swatch.style.opacity = '0.28';
+    const label = document.createElement('span');
+    label.textContent = item.label;
+    el2.appendChild(swatch);
+    el2.appendChild(label);
+    el.appendChild(el2);
   });
-  return active;
 }
 
-// ================= BAR CHART =================
+// x-as: bij 30 dagen niet elke dag labelen - elke ~5e dag plus de laatste
+function shouldLabelDay(i, total) {
+  const step = Math.ceil(total / 7);
+  return i % step === 0 || i === total - 1;
+}
+
+// ================= BAR CHART: gemiddelde onderhoudscapaciteit per dag (vloot) =================
 (function () {
   const W = 1000, H = 356, ML = 44, MR = 16, MT = 30, MB = 40;
   const plotW = W - ML - MR, plotH = H - MT - MB;
@@ -410,67 +711,80 @@ function buildLegend(containerId, onToggle) {
   });
 
   const groupW = plotW / DAYS.length;
-  const barW = Math.min(20, groupW / (icaoList.length + 1.4));
+  const barW = Math.min(16, groupW * 0.6);
   const barsGroup = document.createElementNS(svg.namespaceURI, 'g');
   svg.appendChild(barsGroup);
 
-  DAYS.forEach((d, di) => {
+  dailyStats.forEach((stat, di) => {
     const gx = ML + di * groupW + groupW / 2;
-    const label = document.createElementNS(svg.namespaceURI, 'text');
-    label.setAttribute('x', gx); label.setAttribute('y', H - MB + 20);
-    label.setAttribute('text-anchor', 'middle'); label.setAttribute('class', 'axis-label');
-    label.textContent = fmtDay(d);
-    svg.appendChild(label);
 
-    icaoList.forEach((icao, si) => {
-      const h = round1(HOURS[icao][d] || 0);
-      const ground = round1(Math.max(0, 24 - h));
-      const util = round1(h / 24 * 100);
-      const barH = (h / yMax) * plotH;
-      const bx = gx - (icaoList.length * barW) / 2 + si * barW + 1;
-      const by = MT + plotH - barH;
+    if (shouldLabelDay(di, DAYS.length)) {
+      const label = document.createElementNS(svg.namespaceURI, 'text');
+      label.setAttribute('x', gx); label.setAttribute('y', H - MB + 20);
+      label.setAttribute('text-anchor', 'middle'); label.setAttribute('class', 'axis-label');
+      label.textContent = fmtDay(stat.date);
+      svg.appendChild(label);
+    }
 
-      const rect = document.createElementNS(svg.namespaceURI, 'rect');
-      rect.setAttribute('x', bx);
-      rect.setAttribute('y', by);
-      rect.setAttribute('width', barW - 2);
-      rect.setAttribute('height', Math.max(0, barH));
-      rect.setAttribute('rx', 4);
-      rect.setAttribute('fill', SERIES_COLORS[si]);
-      rect.setAttribute('class', 'bar');
-      rect.dataset.icao = icao;
+    const barH = (stat.meanGround / yMax) * plotH;
+    const bx = gx - barW / 2;
+    const by = MT + plotH - barH;
 
-      const valueLabel = document.createElementNS(svg.namespaceURI, 'text');
-      valueLabel.setAttribute('x', bx + (barW - 2) / 2);
-      valueLabel.setAttribute('y', Math.max(by - 6, MT - 4));
-      valueLabel.setAttribute('text-anchor', 'middle');
-      valueLabel.setAttribute('class', 'axis-label');
-      valueLabel.setAttribute('font-size', '10');
-      valueLabel.dataset.icao = icao;
-      valueLabel.textContent = h;
-      barsGroup.appendChild(valueLabel);
+    const rect = document.createElementNS(svg.namespaceURI, 'rect');
+    rect.setAttribute('x', bx);
+    rect.setAttribute('y', by);
+    rect.setAttribute('width', barW);
+    rect.setAttribute('height', Math.max(0, barH));
+    rect.setAttribute('rx', 4);
+    rect.setAttribute('fill', 'var(--series-1)');
+    rect.setAttribute('class', 'bar');
+    barsGroup.appendChild(rect);
 
-      const showTip = (evt) => {
-        showTooltip(evt.clientX, evt.clientY, `
-          <div class="tt-title">${AIRCRAFT[icao]} — ${fmtDay(d)}</div>
-          <div class="tt-row"><span class="tt-key" style="background:${SERIES_COLORS[si]}"></span>Vliegtijd <span class="tt-val" style="margin-left:auto">${h} uur</span></div>
-          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Grondtijd <span class="tt-val" style="margin-left:auto">${ground} uur</span></div>
-          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Utilisatie <span class="tt-val" style="margin-left:auto">${util}%</span></div>
-          <div class="tt-note">Utilisatie = percentage van de dag dat het toestel in de lucht was. Hoe hoger, hoe intensiever het toestel wordt ingezet en hoe minder tijd er overblijft voor onderhoud bij RJC.</div>
-        `);
-      };
-      rect.addEventListener('pointermove', showTip);
-      rect.addEventListener('pointerenter', showTip);
-      rect.addEventListener('pointerleave', hideTooltip);
-      barsGroup.appendChild(rect);
+    // min–max whisker
+    const minY = MT + plotH - (stat.minGround / yMax) * plotH;
+    const maxY = MT + plotH - (stat.maxGround / yMax) * plotH;
+    const whisker = document.createElementNS(svg.namespaceURI, 'line');
+    whisker.setAttribute('x1', gx); whisker.setAttribute('x2', gx);
+    whisker.setAttribute('y1', minY); whisker.setAttribute('y2', maxY);
+    whisker.setAttribute('stroke', 'var(--text-muted)');
+    whisker.setAttribute('stroke-width', '1.5');
+    barsGroup.appendChild(whisker);
+    [minY, maxY].forEach(y => {
+      const cap = document.createElementNS(svg.namespaceURI, 'line');
+      cap.setAttribute('x1', gx - 3); cap.setAttribute('x2', gx + 3);
+      cap.setAttribute('y1', y); cap.setAttribute('y2', y);
+      cap.setAttribute('stroke', 'var(--text-muted)');
+      cap.setAttribute('stroke-width', '1.5');
+      barsGroup.appendChild(cap);
     });
+
+    // transparante hit area over de volle groepbreedte
+    const hitArea = document.createElementNS(svg.namespaceURI, 'rect');
+    hitArea.setAttribute('x', gx - groupW / 2);
+    hitArea.setAttribute('y', MT);
+    hitArea.setAttribute('width', groupW);
+    hitArea.setAttribute('height', plotH);
+    hitArea.setAttribute('fill', 'transparent');
+    hitArea.style.cursor = 'pointer';
+    const showTip = (evt) => {
+      showTooltip(evt.clientX, evt.clientY, `
+        <div class="tt-title">Vlootgemiddelde - ${fmtDay(stat.date)}</div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--series-1)"></span>Gem. onderhoudscapaciteit <span class="tt-val" style="margin-left:auto">${stat.meanGround} uur</span></div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Spreiding (min–max) <span class="tt-val" style="margin-left:auto">${stat.minGround}–${stat.maxGround} uur</span></div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Gem. vliegtijd <span class="tt-val" style="margin-left:auto">${stat.meanHours} uur</span></div>
+        <div class="tt-note">Gemiddelde beschikbare grondtijd voor onderhoud over ${icaoList.length} toestellen die dag. De min–max-band toont hoeveel toestellen onderling verschillen - hoe breder, hoe ongelijker de capaciteit verdeeld is.</div>
+      `);
+    };
+    hitArea.addEventListener('pointermove', showTip);
+    hitArea.addEventListener('pointerenter', showTip);
+    hitArea.addEventListener('pointerleave', hideTooltip);
+    barsGroup.appendChild(hitArea);
   });
 
-  buildLegend('legend-bar', (active) => {
-    barsGroup.querySelectorAll('.bar, text[data-icao]').forEach(b => {
-      b.style.opacity = active.has(b.dataset.icao) ? '1' : '0.12';
-    });
-  });
+  buildStaticLegend('legend-bar', [
+    { color: 'var(--series-1)', label: 'Gem. onderhoudscapaciteit', type: 'swatch' },
+    { color: 'var(--text-muted)', label: 'Min–max spreiding', type: 'swatch' },
+  ]);
 
   // table view
   const tableEl = document.getElementById('table-bar');
@@ -484,7 +798,7 @@ function buildLegend(containerId, onToggle) {
   });
 })();
 
-// ================= LINE CHART (utilisatie %) =================
+// ================= LINE CHART: gemiddelde utilisatie % (vloot) =================
 (function () {
   const W = 1000, H = 300, ML = 44, MR = 16, MT = 16, MB = 40;
   const plotW = W - ML - MR, plotH = H - MT - MB;
@@ -511,6 +825,7 @@ function buildLegend(containerId, onToggle) {
 
   const xStep = plotW / (DAYS.length - 1);
   DAYS.forEach((d, i) => {
+    if (!shouldLabelDay(i, DAYS.length)) return;
     const x = ML + i * xStep;
     const label = document.createElementNS(svg.namespaceURI, 'text');
     label.setAttribute('x', x); label.setAttribute('y', H - MB + 20);
@@ -519,60 +834,63 @@ function buildLegend(containerId, onToggle) {
     svg.appendChild(label);
   });
 
+  const yFor = v => MT + plotH - (v / yMax) * plotH;
+  const xFor = i => ML + i * xStep;
+
+  // min–max band als gevulde area
+  const topPts = dailyStats.map((s, i) => [xFor(i), yFor(s.maxUtil)]);
+  const bottomPts = dailyStats.map((s, i) => [xFor(i), yFor(s.minUtil)]).reverse();
+  const bandPath = document.createElementNS(svg.namespaceURI, 'path');
+  bandPath.setAttribute(
+    'd',
+    'M ' + topPts.map(p => p.join(' ')).join(' L ') + ' L ' + bottomPts.map(p => p.join(' ')).join(' L ') + ' Z'
+  );
+  bandPath.setAttribute('fill', 'var(--series-1)');
+  bandPath.setAttribute('opacity', '0.12');
+  bandPath.setAttribute('stroke', 'none');
+  svg.appendChild(bandPath);
+
   const seriesGroup = document.createElementNS(svg.namespaceURI, 'g');
   svg.appendChild(seriesGroup);
-  const dotsBySeries = {};
 
-  icaoList.forEach((icao, si) => {
-    const pts = DAYS.map((d, i) => {
-      const h = HOURS[icao][d] || 0;
-      const util = round1(h / 24 * 100);
-      return [ML + i * xStep, MT + plotH - (util / yMax) * plotH, util];
-    });
-    const path = document.createElementNS(svg.namespaceURI, 'path');
-    path.setAttribute('d', 'M ' + pts.map(p => p[0] + ' ' + p[1]).join(' L '));
-    path.setAttribute('class', 'lineseries');
-    path.setAttribute('stroke', SERIES_COLORS[si]);
-    path.dataset.icao = icao;
-    seriesGroup.appendChild(path);
+  const meanPts = dailyStats.map((s, i) => [xFor(i), yFor(s.meanUtil)]);
+  const path = document.createElementNS(svg.namespaceURI, 'path');
+  path.setAttribute('d', 'M ' + meanPts.map(p => p.join(' ')).join(' L '));
+  path.setAttribute('class', 'lineseries');
+  path.setAttribute('stroke', 'var(--series-1)');
+  seriesGroup.appendChild(path);
 
-    dotsBySeries[icao] = [];
-    pts.forEach(([x, y, util], i) => {
-      const dot = document.createElementNS(svg.namespaceURI, 'circle');
-      dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 5);
-      dot.setAttribute('fill', SERIES_COLORS[si]);
-      dot.setAttribute('class', 'linedot');
-      dot.dataset.icao = icao;
-      const hitArea = document.createElementNS(svg.namespaceURI, 'circle');
-      hitArea.setAttribute('cx', x); hitArea.setAttribute('cy', y); hitArea.setAttribute('r', 13);
-      hitArea.setAttribute('fill', 'transparent');
-      hitArea.dataset.icao = icao;
-      const d = DAYS[i];
-      const h = round1(HOURS[icao][d] || 0);
-      const ground = round1(Math.max(0, 24 - h));
-      const showTip = (evt) => {
-        showTooltip(evt.clientX, evt.clientY, `
-          <div class="tt-title">${AIRCRAFT[icao]} — ${fmtDay(d)}</div>
-          <div class="tt-row"><span class="tt-key" style="background:${SERIES_COLORS[si]}"></span>Utilisatie <span class="tt-val" style="margin-left:auto">${util}%</span></div>
-          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Vliegtijd <span class="tt-val" style="margin-left:auto">${h} uur</span></div>
-          <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Grondtijd <span class="tt-val" style="margin-left:auto">${ground} uur</span></div>
-          <div class="tt-note">Percentage van de dag dat het toestel in de lucht was — hoe hoger, hoe intensiever het toestel wordt ingezet en hoe minder tijd er beschikbaar is voor onderhoud bij RJC.</div>
-        `);
-      };
-      hitArea.addEventListener('pointermove', showTip);
-      hitArea.addEventListener('pointerenter', showTip);
-      hitArea.addEventListener('pointerleave', hideTooltip);
-      seriesGroup.appendChild(dot);
-      seriesGroup.appendChild(hitArea);
-      dotsBySeries[icao].push(dot, hitArea);
-    });
+  dailyStats.forEach((stat, i) => {
+    const [x, y] = meanPts[i];
+    const dot = document.createElementNS(svg.namespaceURI, 'circle');
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 4);
+    dot.setAttribute('fill', 'var(--series-1)');
+    dot.setAttribute('class', 'linedot');
+    seriesGroup.appendChild(dot);
+
+    const hitArea = document.createElementNS(svg.namespaceURI, 'circle');
+    hitArea.setAttribute('cx', x); hitArea.setAttribute('cy', y); hitArea.setAttribute('r', 13);
+    hitArea.setAttribute('fill', 'transparent');
+    hitArea.style.cursor = 'pointer';
+    const showTip = (evt) => {
+      showTooltip(evt.clientX, evt.clientY, `
+        <div class="tt-title">Vlootgemiddelde - ${fmtDay(stat.date)}</div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--series-1)"></span>Gem. utilisatie <span class="tt-val" style="margin-left:auto">${stat.meanUtil}%</span></div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Spreiding (min–max) <span class="tt-val" style="margin-left:auto">${stat.minUtil}–${stat.maxUtil}%</span></div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Gem. vliegtijd <span class="tt-val" style="margin-left:auto">${stat.meanHours} uur</span></div>
+        <div class="tt-note">Gemiddeld percentage van de dag dat de vloot in de lucht was - hoe hoger, hoe minder ruimte er gemiddeld was voor onderhoud bij RJC die dag.</div>
+      `);
+    };
+    hitArea.addEventListener('pointermove', showTip);
+    hitArea.addEventListener('pointerenter', showTip);
+    hitArea.addEventListener('pointerleave', hideTooltip);
+    seriesGroup.appendChild(hitArea);
   });
 
-  buildLegend('legend-line', (active) => {
-    seriesGroup.querySelectorAll('path, circle').forEach(el => {
-      el.style.opacity = active.has(el.dataset.icao) ? '1' : '0.12';
-    });
-  });
+  buildStaticLegend('legend-line', [
+    { color: 'var(--series-1)', label: 'Vlootgemiddelde', type: 'swatch' },
+    { color: 'var(--series-1)', label: 'Min–max band', type: 'band' },
+  ]);
 
   const tableEl = document.getElementById('table-line');
   tableEl.innerHTML = buildTableHTML(true);
@@ -585,10 +903,122 @@ function buildLegend(containerId, onToggle) {
   });
 })();
 
+// ================= RANKING CHART: voorspelbaarheid onderhoudsvenster =================
+(function () {
+  // oplopend op spreiding: meest voorspelbaar (laagste sigma) bovenaan
+  const rankData = [...perAircraftGroundStats].sort((a, b) => a.stdev - b.stdev);
+
+  const rowH = 28, ML = 130, MR = 50, MT = 10, MB = 34;
+  const W = 1000, H = MT + rankData.length * rowH + MB;
+  const plotW = W - ML - MR, plotH = rankData.length * rowH;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.style.display = 'block';
+  document.getElementById('chart-rank').appendChild(svg);
+
+  const xMax = Math.max(1, ...rankData.map(d => d.stdev)) * 1.15;
+  const xFor = v => ML + (v / xMax) * plotW;
+
+  // gridlines (x-as, uren)
+  const xTicks = 5;
+  for (let i = 0; i <= xTicks; i++) {
+    const v = (xMax / xTicks) * i;
+    const x = xFor(v);
+    const line = document.createElementNS(svg.namespaceURI, 'line');
+    line.setAttribute('x1', x); line.setAttribute('x2', x);
+    line.setAttribute('y1', MT); line.setAttribute('y2', MT + plotH);
+    line.setAttribute('class', i === 0 ? 'baseline' : 'gridline');
+    svg.appendChild(line);
+    const label = document.createElementNS(svg.namespaceURI, 'text');
+    label.setAttribute('x', x); label.setAttribute('y', MT + plotH + 20);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('class', 'axis-label');
+    label.textContent = round1(v) + 'u';
+    svg.appendChild(label);
+  }
+  const xAxisTitle = document.createElementNS(svg.namespaceURI, 'text');
+  xAxisTitle.setAttribute('x', ML + plotW / 2); xAxisTitle.setAttribute('y', H - 2);
+  xAxisTitle.setAttribute('text-anchor', 'middle'); xAxisTitle.setAttribute('class', 'axis-label');
+  xAxisTitle.textContent = 'Spreiding grondtijd (σ, uur) — lager = voorspelbaarder';
+  svg.appendChild(xAxisTitle);
+
+  const barsGroup = document.createElementNS(svg.namespaceURI, 'g');
+  svg.appendChild(barsGroup);
+
+  rankData.forEach((d, i) => {
+    const y = MT + i * rowH;
+    const barH = rowH - 10;
+    const barW = Math.max(2, xFor(d.stdev) - ML);
+    const isBest = i === 0;
+    const isWorst = i === rankData.length - 1;
+    const color = isBest ? 'var(--status-good)' : isWorst ? 'var(--status-serious)' : 'var(--series-1)';
+
+    const label = document.createElementNS(svg.namespaceURI, 'text');
+    label.setAttribute('x', ML - 10); label.setAttribute('y', y + barH / 2 + 4);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('class', 'axis-label');
+    label.textContent = d.label.split(' ')[0];
+    svg.appendChild(label);
+
+    const rect = document.createElementNS(svg.namespaceURI, 'rect');
+    rect.setAttribute('x', ML); rect.setAttribute('y', y + 5);
+    rect.setAttribute('width', barW); rect.setAttribute('height', barH);
+    rect.setAttribute('rx', 3); rect.setAttribute('fill', color); rect.setAttribute('class', 'bar');
+    barsGroup.appendChild(rect);
+
+    const valueLabel = document.createElementNS(svg.namespaceURI, 'text');
+    valueLabel.setAttribute('x', ML + barW + 6); valueLabel.setAttribute('y', y + barH / 2 + 4);
+    valueLabel.setAttribute('class', 'axis-label'); valueLabel.setAttribute('font-size', '10');
+    valueLabel.textContent = `±${d.stdev}u`;
+    barsGroup.appendChild(valueLabel);
+
+    const hitArea = document.createElementNS(svg.namespaceURI, 'rect');
+    hitArea.setAttribute('x', ML); hitArea.setAttribute('y', y);
+    hitArea.setAttribute('width', plotW); hitArea.setAttribute('height', rowH);
+    hitArea.setAttribute('fill', 'transparent'); hitArea.style.cursor = 'pointer';
+    const showTip = (evt) => {
+      showTooltip(evt.clientX, evt.clientY, `
+        <div class="tt-title">${d.label} — plek ${i + 1} van ${rankData.length}</div>
+        <div class="tt-row"><span class="tt-key" style="background:${color}"></span>Spreiding (σ) <span class="tt-val" style="margin-left:auto">±${d.stdev} uur</span></div>
+        <div class="tt-row"><span class="tt-key" style="background:var(--text-muted)"></span>Gem. grondtijd <span class="tt-val" style="margin-left:auto">${d.avgGround} uur</span></div>
+        <div class="tt-note">${isBest ? 'Meest stabiele patroon in de sample — beste kandidaat voor vast gepland onderhoud.' : isWorst ? 'Meest wisselende patroon in de sample — vraagt kort-cyclische, flexibele planning.' : 'Hoe lager de spreiding, hoe voorspelbaarder het onderhoudsvenster van dit toestel.'}</div>
+      `);
+    };
+    hitArea.addEventListener('pointermove', showTip);
+    hitArea.addEventListener('pointerenter', showTip);
+    hitArea.addEventListener('pointerleave', hideTooltip);
+    barsGroup.appendChild(hitArea);
+  });
+
+  buildStaticLegend('legend-rank', [
+    { color: 'var(--status-good)', label: 'Meest voorspelbaar', type: 'swatch' },
+    { color: 'var(--series-1)', label: 'Overige toestellen', type: 'swatch' },
+    { color: 'var(--status-serious)', label: 'Minst voorspelbaar', type: 'swatch' },
+  ]);
+
+  const tableEl = document.getElementById('table-rank');
+  tableEl.innerHTML = buildRankTableHTML(rankData);
+  document.querySelector('[data-toggle="table-rank"]').addEventListener('click', (e) => {
+    const showing = !tableEl.classList.contains('hidden');
+    tableEl.classList.toggle('hidden', showing);
+    svg.parentElement.classList.toggle('hidden', !showing);
+    document.getElementById('legend-rank').classList.toggle('hidden', !showing);
+    e.target.textContent = showing ? 'Toon als tabel' : 'Toon als grafiek';
+  });
+})();
+
 function buildTableHTML() {
   let html = '<table class="data-table"><thead><tr><th>Toestel</th><th>Datum</th><th>Vliegtijd (u)</th><th>Grondtijd (u)</th><th>Utilisatie (%)</th></tr></thead><tbody>';
   rows.forEach(r => {
     html += `<tr><td>${r.label}</td><td>${fmtDay(r.date)}</td><td>${r.hours}</td><td>${r.ground}</td><td>${r.util}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function buildRankTableHTML(rankData) {
+  let html = '<table class="data-table"><thead><tr><th>Rang</th><th>Toestel</th><th>Gem. grondtijd (u)</th><th>Spreiding σ (u)</th></tr></thead><tbody>';
+  rankData.forEach((d, i) => {
+    html += `<tr><td>${i + 1}</td><td>${d.label}</td><td>${d.avgGround}</td><td>±${d.stdev}</td></tr>`;
   });
   html += '</tbody></table>';
   return html;
